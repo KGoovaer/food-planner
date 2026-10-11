@@ -51,6 +51,20 @@ test("real-world cases: compounds ending in the meat, sausages, buns, alternativ
   assert.equal(classify(recipe({ title: "Macarons met framboos" })).course, "dessert");
 });
 
+test("BBQ cuts", () => {
+  const p = (...names: string[]) => classify(recipe({ ingredients: ing(...names) })).proteins;
+  for (const cut of ["côte de boeuf", "picanha", "tri-tip", "T-bone", "tournedos", "shortribs", "short ribs", "galbi ribs", "wagyu", "inside skirt", "sukade", "diamanthaas", "tomahawk", "flank steak", "maminha"]) {
+    assert.deepEqual(p(cut), ["beef"], cut);
+  }
+  for (const cut of ["secreto ibérico", "Iberico ribfingers", "procureur", "sjasliek", "shaslick", "pulled pork", "pluma"]) {
+    assert.deepEqual(p(cut), ["pork"], cut);
+  }
+  assert.deepEqual(p("roodbaars"), ["fish"]);
+  assert.deepEqual(p("Noordzeetong"), ["fish"]);
+  assert.deepEqual(p("gemarineerd hammetje"), ["pork"]);
+  assert.deepEqual(p("rode zuurkool", "appeltaart"), ["vegetarian"]);
+});
+
 test("course from tags and title", () => {
   assert.equal(classify(recipe({ tags: ["dessert", "ottolenghi"] })).course, "dessert");
   assert.equal(classify(recipe({ tags: ["nagerecht"] })).course, "dessert");

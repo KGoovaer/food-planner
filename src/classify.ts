@@ -40,16 +40,16 @@ function matcher(prefixes: string[], words: string[] = [], suffixes: string[] = 
 const MEAT: [Exclude<Protein, "vegetarian">, RegExp][] = [
   ["poultry", matcher(["kip", "kippe", "poulet", "chicken", "kalkoen", "turkey", "eend", "duck", "parelhoen", "kwartel", "fazant", "hoen"], [], ["kip", "kippen", "kippenbouten", "eendenborst"])],
   ["pork", matcher(
-    ["varken", "pork", "spek", "pancetta", "chorizo", "worst", "sausage", "bacon", "prosciutto", "parmaham", "serranoham", "guanciale", "salami", "lardon", "nduja", "'nduja", "hesp", "ribbetjes", "spareribs", "spare ribs", "hamblokjes", "beenham", "gyros", "mortadella", "coppa", "lomo", "jambon", "chipolata", "cervela", "boudin", "salsiccia", "cotechino", "kassler"],
+    ["varken", "pork", "spek", "pancetta", "chorizo", "worst", "sausage", "bacon", "prosciutto", "parmaham", "serranoham", "guanciale", "salami", "lardon", "nduja", "'nduja", "hesp", "ribbetjes", "spareribs", "spare ribs", "hamblokjes", "beenham", "gyros", "mortadella", "coppa", "lomo", "jambon", "chipolata", "cervela", "boudin", "salsiccia", "cotechino", "kassler", "iberico", "secreto", "pluma", "presa", "procureur", "ribfinger", "sjasliek", "shaslick", "schaslik", "hammetje", "hot dog", "hotdog", "frikandel"],
     ["ham", "hammen"],
-    ["spek", "spekjes", "worst", "worsten", "worstjes", "ham", "hesp"],
+    ["spek", "spekjes", "worst", "worsten", "worstjes", "ham", "hesp", "hotdog", "hotdogs"],
   )],
   ["lamb", matcher(["lams", "lamb", "mutton", "merguez", "schaap", "geit"], ["lam"])],
-  ["beef", matcher(["rund", "runder", "biefstuk", "entrecote", "ribeye", "rib-eye", "ossenstaart", "ossenwang", "beef", "veal", "kalf", "kalfs", "brisket", "bavette", "onglet", "rosbief", "steak tartare", "konijn", "rabbit", "hert", "venison", "everzwijn", "wild zwijn", "paard"])],
+  ["beef", matcher(["rund", "runder", "biefstuk", "entrecote", "ribeye", "rib-eye", "ossenstaart", "ossenwang", "beef", "veal", "kalf", "kalfs", "brisket", "bavette", "onglet", "rosbief", "steak tartare", "konijn", "rabbit", "hert", "venison", "everzwijn", "wild zwijn", "paard", "cote de boeuf", "boeuf", "picanha", "tri-tip", "tritip", "t-bone", "tournedos", "short rib", "shortrib", "galbi", "bulgogi", "wagyu", "skirt", "flank", "sukade", "diamanthaas", "tomahawk", "striploin", "chuck", "prime rib", "ossobuco", "hanger steak", "dry aged", "denver steak", "rib roast", "pastrami", "maminha", "fraldinha", "sudderlap", "bavet", "onglet", "hamburger"])],
   ["fish", matcher(
     ["zalm", "kabeljauw", "tonijn", "heek", "schelvis", "forel", "makreel", "sardien", "sardine", "ansjovis", "anchov", "zeebaars", "dorade", "tarbot", "tongfilet", "pladijs", "rogvleugel", "zeeduivel", "griet", "steenbolk", "hondshaai", "wijting", "koolvis", "haring", "snoekbaars", "paling", "visfilet", "witvis", "salmon", "cod", "tuna", "haddock", "trout", "mackerel", "sea bass", "seabass", "bream", "halibut", "hake", "monkfish", "plaice", "fish", "pollock", "swordfish", "zwaardvis", "tilapia", "pangasius", "skrei", "bokking", "sprot", "rode poon", "zeetong", "kingfish", "mahi"],
     ["vis", "tong", "rog", "sole", "skate"],
-    ["zalm", "zalmfilet", "zalmfilets", "kabeljauw", "tonijn", "forel", "makreel"],
+    ["zalm", "zalmfilet", "zalmfilets", "kabeljauw", "tonijn", "forel", "makreel", "baars", "tong", "vis"],
   )],
   ["seafood", matcher(["garna", "scampi", "mossel", "oester", "sint-jakob", "jakobsschelp", "coquille", "inktvis", "octopus", "kreeft", "krab", "rivierkreeft", "langoustine", "gamba", "prawn", "shrimp", "mussel", "clam", "squid", "scallop", "crab", "lobster", "zeekat", "calamar", "vongole", "kokkel", "cockle", "oyster", "zeevruchten", "seafood"], [], ["garnalen", "garnaaltjes", "mosselen", "scampi", "inktvis", "inktvissen"])],
 ];
