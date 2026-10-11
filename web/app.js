@@ -520,6 +520,7 @@ function quickChips(f, { withFilterButton = false } = {}) {
     withFilterButton ? `<button class="chip ${n ? "active" : ""}" data-action="filters">${ICONS.filter} Filters${n ? ` · ${n}` : ""}</button>` : "",
     chip("course:main", "Mains", f.course === "main"),
     chip("course:dessert", "🍰 Desserts", f.course === "dessert"),
+    chip("tag:classic", "🏠 Classics", f.tags.includes("classic")),
     chip("time:30", "⏱ ≤ 30 min", f.maxTime === 30),
     chip("healthy", "🥗 Healthy", f.healthy),
     chip("easy", "⚡ Easy", f.easy),
