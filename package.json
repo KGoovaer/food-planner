@@ -1,0 +1,22 @@
+{
+  "name": "food-planner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Weekly meal planner with recipe import (HelloFresh, websites, cookbook photos), shopping list and Bring! sync",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.ts",
+    "dev": "DATA_DIR=./data node --disable-warning=ExperimentalWarning --watch src/server.ts",
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": { "node": ">=22.18" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.129.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
