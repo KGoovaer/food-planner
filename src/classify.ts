@@ -5,7 +5,7 @@
 import type { Ingredient } from "./ingredients.ts";
 
 export type Protein = "poultry" | "beef" | "pork" | "lamb" | "fish" | "seafood" | "vegetarian";
-export type Course = "main" | "dessert";
+export type Course = "main" | "dessert" | "kamado";
 
 export interface RecipeFacts {
   proteins: Protein[];
@@ -88,6 +88,8 @@ const DESSERT_TITLE = matcher(
 );
 
 export function courseOf(title: string, tags: string[]): Course {
+  // Kamado (BBQ) recipes are their own section, whether they are a main or a dessert.
+  if (tags.some((t) => /^kamado/.test(normalize(t)))) return "kamado";
   if (tags.some((t) => DESSERT_TAG.test(normalize(t)))) return "dessert";
   // Only the dish itself counts, not its garnish: "Broccolisoep met ... crumble van walnoten" is soup.
   const head = normalize(title).split(/ (?:met|with|en|and|op|on|in|van|of|served) |, /)[0];

@@ -465,7 +465,7 @@ const PROTEINS = [
 ];
 const PROTEIN_INFO = Object.fromEntries(PROTEINS.map(([k, icon, label]) => [k, { icon, label }]));
 const TIMES = [20, 30, 45, 60];
-const CHEF_TAGS = ["jeroen meus", "pascale naessens", "jamie oliver", "ottolenghi", "hellofresh"];
+const CHEF_TAGS = ["jeroen meus", "pascale naessens", "jamie oliver", "ottolenghi", "bbq experience center", "hellofresh"];
 
 const emptyFilter = (course = "all") => ({ q: "", course, proteins: [], maxTime: 0, healthy: false, easy: false, favorite: false, tags: [], sort: "az" });
 
@@ -520,6 +520,7 @@ function quickChips(f, { withFilterButton = false } = {}) {
     withFilterButton ? `<button class="chip ${n ? "active" : ""}" data-action="filters">${ICONS.filter} Filters${n ? ` · ${n}` : ""}</button>` : "",
     chip("course:main", "Mains", f.course === "main"),
     chip("course:dessert", "🍰 Desserts", f.course === "dessert"),
+    chip("course:kamado", "🔥 Kamado", f.course === "kamado"),
     chip("tag:classic", "🏠 Classics", f.tags.includes("classic")),
     chip("time:30", "⏱ ≤ 30 min", f.maxTime === 30),
     chip("healthy", "🥗 Healthy", f.healthy),
@@ -543,6 +544,7 @@ function badges(r, { long = false } = {}) {
   if (r.healthy) out.push(`<span class="badge-chip">🥗${long ? " Healthy" : ""}</span>`);
   if (r.easy) out.push(`<span class="badge-chip">⚡${long ? " Easy" : ""}</span>`);
   if (r.course === "dessert") out.push(`<span class="badge-chip">🍰${long ? " Dessert" : ""}</span>`);
+  if (r.course === "kamado") out.push(`<span class="badge-chip">🔥${long ? " Kamado" : ""}</span>`);
   return out.join("");
 }
 
@@ -705,7 +707,7 @@ function openFilterSheet(recipes, onChange) {
     return `<h3>Filters</h3>
     <div class="sheet-body filter-sheet">
       <h2 class="section">Course</h2>
-      <div class="chip-wrap">${chip("course:main", "Mains", f.course === "main")}${chip("course:dessert", "🍰 Desserts", f.course === "dessert")}</div>
+      <div class="chip-wrap">${chip("course:main", "Mains", f.course === "main")}${chip("course:dessert", "🍰 Desserts", f.course === "dessert")}${chip("course:kamado", "🔥 Kamado", f.course === "kamado")}</div>
       <h2 class="section">Protein</h2>
       <div class="chip-wrap">${PROTEINS.map(([k, icon, label]) => chip(`protein:${k}`, `${icon} ${label}`, f.proteins.includes(k))).join("")}</div>
       <h2 class="section">Ready in</h2>

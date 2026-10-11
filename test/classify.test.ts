@@ -54,6 +54,8 @@ test("real-world cases: compounds ending in the meat, sausages, buns, alternativ
 test("course from tags and title", () => {
   assert.equal(classify(recipe({ tags: ["dessert", "ottolenghi"] })).course, "dessert");
   assert.equal(classify(recipe({ tags: ["nagerecht"] })).course, "dessert");
+  assert.equal(classify(recipe({ tags: ["kamado", "rund"] })).course, "kamado");
+  assert.equal(classify(recipe({ title: "Witte chocolade cheesecake", tags: ["kamado", "dessert"] })).course, "kamado");
   assert.equal(classify(recipe({ title: "Tiramisu met speculoos" })).course, "dessert");
   assert.equal(classify(recipe({ title: "Chocolademousse" })).course, "dessert");
   assert.equal(classify(recipe({ title: "Rodekooltaart met appelen en spek" })).course, "main");
