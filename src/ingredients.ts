@@ -96,6 +96,9 @@ function parseNumber(text: string): number {
   return Number(t);
 }
 
+const IMPERIAL_AMOUNT = String.raw`(?:\d+(?:[.,]\d+)?)?\s*[½¼¾⅓⅔]?\s*(?:lbs?|fl\.? ?oz|oz)(?:\s*\d+[½¼¾]?\s*oz)?`;
+const IMPERIAL_RE = new RegExp(String.raw`^\(?${IMPERIAL_AMOUNT}(?:\s*[–-]\s*${IMPERIAL_AMOUNT})?\)?\s+`, "i");
+
 const TO_TASTE_RE = /^(naar smaak|to taste|optioneel|optional|snufje|a pinch of)\s+/i;
 
 const ADJECTIVES = new Set([
@@ -130,7 +133,11 @@ function splitNote(text: string): { name: string; note?: string } {
 
 /** Parse a free-text ingredient line such as "200 gram Kipfilet", "1½ el olijfolie" or "2 cloves garlic, minced". */
 export function parseIngredient(line: string): Ingredient {
-  let rest = line.replace(/\s+/g, " ").trim().replace(/^[-•*·]\s*/, "");
+  let rest = line
+    .replace(/\s+/g, " ")
+    .replace(/⁄/g, "/") // fraction slash: "1⁄2"
+    .trim()
+    .replace(/^[-•*·+]\s*/, "");
   let quantity: number | null = null;
   let unit = "";
 
@@ -169,6 +176,7 @@ export function parseIngredient(line: string): Ingredient {
   // or the next word ("200 gram", "2 stuk(s)"), possibly after a size ("1 small bunch of …").
   const notes: string[] = [];
   if (quantity !== null) {
+    rest = rest.replace(/^of (an?|the)\s+/i, ""); // "¼ of a clove of garlic"
     const sized = rest.match(/^(small|medium|large|big|klein|kleine|groot|grote|flinke)\s+(\S+)\s*/i);
     if (sized && canonicalUnit(sized[2])) {
       notes.push(sized[1].toLowerCase());
@@ -185,6 +193,8 @@ export function parseIngredient(line: string): Ingredient {
         notes.push(container[1].toLowerCase());
         rest = rest.slice(container[0].length);
       }
+      // British recipes list the imperial weight too: "1.5kg 3lb 5oz chicken", "50g 1¾oz seeds".
+      if (UNITS[unit]) rest = rest.replace(IMPERIAL_RE, "");
       // "1 el. van de olie" → drop filler words
       rest = rest.replace(/^(of the|of|van de|van)\s+/i, "");
     }

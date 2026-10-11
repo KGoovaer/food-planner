@@ -54,6 +54,17 @@ test("tricky lines from real recipes", () => {
   assert.deepEqual(parseIngredient("2 handenvol cashewnoten, geroosterd"), { quantity: 2, unit: "handful", name: "cashewnoten", note: "geroosterd" });
 });
 
+test("British recipes: imperial equivalents, fraction slash, leading plus and 'of a'", () => {
+  assert.deepEqual(parseIngredient("1.5kg 3lb 5oz whole corn-fed, free-range chicken"), { quantity: 1.5, unit: "kg", name: "whole corn-fed, free-range chicken" });
+  assert.deepEqual(parseIngredient("400g 14oz sugar snap peas, thinly sliced"), { quantity: 400, unit: "g", name: "sugar snap peas", note: "thinly sliced" });
+  assert.deepEqual(parseIngredient("1.5kg 2lb 12oz–3lb 5oz chicken"), { quantity: 1.5, unit: "kg", name: "chicken" });
+  assert.deepEqual(parseIngredient("50g 1¾oz fennel seeds"), { quantity: 50, unit: "g", name: "fennel seeds" });
+  assert.deepEqual(parseIngredient("1 1⁄2 tbsp balsamic vinegar"), { quantity: 1.5, unit: "tbsp", name: "balsamic vinegar" });
+  assert.deepEqual(parseIngredient("+ flaked sea salt and black pepper"), { quantity: null, unit: "", name: "flaked sea salt and black pepper" });
+  assert.deepEqual(parseIngredient("¼ of a clove of garlic"), { quantity: 0.25, unit: "clove", name: "garlic" });
+  assert.deepEqual(parseIngredient("½ of a small red onion"), { quantity: 0.5, unit: "", name: "small red onion" });
+});
+
 test("editor text keeps exact quantities", () => {
   const ings = [
     { quantity: 233, unit: "g", name: "a" },
