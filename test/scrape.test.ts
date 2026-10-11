@@ -77,3 +77,12 @@ test("Pure Pascale: ingredients from JSON-LD and the cookbook page as note", () 
   assert.equal(r.steps.length, 0);
   assert.equal(r.notes, "Volledig recept: p. 204 van “De slimste keuken”");
 });
+
+test("full method from recipe-instruction blocks (Dagelijkse Kost)", async () => {
+  const { instructionBlocks } = await import("../src/scrape.ts");
+  const block = (n: number, text: string) =>
+    `<div data-testid="recipe-instruction"><span>${n}</span><p class="body">${text}</p><span>3 stronken prei</span></div>`;
+  const method = block(1, "Smelt de boter.") + block(2, "Spoel de prei &amp; snijd ze.") + block(3, "Kook de pasta.");
+  assert.deepEqual(instructionBlocks(`<main>${method}</main><aside>${method}</aside>`), ["Smelt de boter.", "Spoel de prei & snijd ze.", "Kook de pasta."]);
+  assert.deepEqual(instructionBlocks("<p>no steps</p>"), []);
+});

@@ -261,9 +261,31 @@ export function bookReference(html: string): string | null {
   return m ? `Volledig recept: p. ${m[1]} van “${m[2].trim()}”` : null;
 }
 
+/**
+ * Dagelijkse Kost (Jeroen Meus) only puts the first steps in its JSON-LD; the full method is in the page,
+ * one `data-testid="recipe-instruction"` block per step. Returns the steps in order (deduplicated, since
+ * the page renders the method more than once).
+ */
+export function instructionBlocks(html: string): string[] {
+  const steps: string[] = [];
+  const parts = html.split('data-testid="recipe-instruction"').slice(1);
+  for (const part of parts) {
+    const p = part.match(/<p[^>]*>([\s\S]*?)<\/p>/);
+    const text = p ? htmlToText(p[1]) : "";
+    if (!text) continue;
+    if (steps.includes(text)) break; // second rendering of the same method
+    steps.push(text);
+  }
+  return steps;
+}
+
 /** Best-effort structured extraction; null when the page has no machine readable recipe. */
 export function extractRecipe(html: string, url: string | null): RecipeDraft | null {
   const recipe = extractStructured(html, url);
+  if (recipe) {
+    const blocks = instructionBlocks(html);
+    if (blocks.length > recipe.steps.length) recipe.steps = blocks;
+  }
   if (recipe && recipe.steps.length === 0) {
     const ref = bookReference(html);
     if (ref) recipe.notes = ref;
