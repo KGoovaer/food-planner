@@ -255,10 +255,13 @@ export function recipeFromHelloFresh(html: string, url: string | null, preferred
   };
 }
 
-/** Some sites (Pure Pascale) only publish ingredients and point to the cookbook page for the method. */
-export function bookReference(html: string): string | null {
-  const m = htmlToText(html).match(/Het volledige recept lees je op pagina\s+(\d+)\s+van\s+([^\n]+)/);
-  return m ? `Volledig recept: p. ${m[1]} van “${m[2].trim()}”` : null;
+/** Some sites (Pure Pascale, Jamie Oliver) only publish ingredients and point to the cookbook page for the method. */
+export function bookReference(text: string): string | null {
+  const t = htmlToText(text);
+  const nl = t.match(/Het volledige recept lees je op pagina\s+(\d+)\s+van\s+([^\n]+)/);
+  if (nl) return `Volledig recept: p. ${nl[1]} van “${nl[2].trim()}”`;
+  const en = t.match(/full recipe,? head to page\s+(\d+)\s+of\s+([^\n]+?)\.?\s*$/im);
+  return en ? `Full recipe: p. ${en[1]} of “${en[2].trim()}”` : null;
 }
 
 /**
@@ -286,7 +289,12 @@ export function extractRecipe(html: string, url: string | null): RecipeDraft | n
     const blocks = instructionBlocks(html);
     if (blocks.length > recipe.steps.length) recipe.steps = blocks;
   }
-  if (recipe && recipe.steps.length === 0) {
+  // A lone "step" that only points to the cookbook is a note, not a method.
+  if (recipe && recipe.steps.length === 1 && bookReference(recipe.steps[0])) {
+    recipe.notes = bookReference(recipe.steps[0])!;
+    recipe.steps = [];
+  }
+  if (recipe && recipe.steps.length === 0 && !recipe.notes) {
     const ref = bookReference(html);
     if (ref) recipe.notes = ref;
   }

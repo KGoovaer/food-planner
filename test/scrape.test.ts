@@ -86,3 +86,9 @@ test("full method from recipe-instruction blocks (Dagelijkse Kost)", async () =>
   assert.deepEqual(instructionBlocks(`<main>${method}</main><aside>${method}</aside>`), ["Smelt de boter.", "Spoel de prei & snijd ze.", "Kook de pasta."]);
   assert.deepEqual(instructionBlocks("<p>no steps</p>"), []);
 });
+
+test("book references in English (Jamie Oliver)", async () => {
+  const { bookReference } = await import("../src/scrape.ts");
+  assert.equal(bookReference("Find the recipe!For the full recipe, head to page 126 of Save with Jamie."), "Full recipe: p. 126 of “Save with Jamie”");
+  assert.equal(bookReference("Fry the onions."), null);
+});
