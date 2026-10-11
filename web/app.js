@@ -272,11 +272,15 @@ async function render({ keepScroll = false } = {}) {
   state.actions = {};
   closeSheet();
   const scrollY = window.scrollY;
+  // Show a spinner when loading takes a moment (slow network), but avoid flicker on fast loads.
+  const spinner = keepScroll ? null : setTimeout(() => id === renderId && (view.innerHTML = '<div class="working"><div class="spinner"></div></div>'), 200);
   try {
     await match[1]({ params: path.match(match[0]).slice(1), query, isCurrent: () => id === renderId });
+    clearTimeout(spinner);
     if (keepScroll) window.scrollTo(0, scrollY);
     else window.scrollTo(0, 0);
   } catch (err) {
+    clearTimeout(spinner);
     if (id !== renderId) return;
     view.innerHTML = `<div class="empty"><h3>Something went wrong</h3><p>${esc(err.message)}</p>
       <button class="btn secondary" data-action="retry">Try again</button></div>`;
