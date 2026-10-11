@@ -664,3 +664,26 @@ details.collapsible[open] > summary::after { content: "Hide"; }
 .settings-group { padding: 16px; margin-bottom: 16px; }
 .status-dot { display: inline-block; width: 9px; height: 9px; margin-right: 6px; border-radius: 50%; background: var(--muted); }
 .status-dot.ok { background: #3aa76d; }
+
+/* --- filters & badges --- */
+
+.chip svg { width: 16px; height: 16px; }
+.chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter-sheet h2.section:first-child { margin-top: 4px; }
+.result-line { display: flex; align-items: center; justify-content: space-between; min-height: 36px; margin: 0 4px 4px; }
+.badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.badges.long { margin-top: 10px; gap: 6px; }
+.badge-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.78rem;
+  line-height: 1;
+}
+.badges.long .badge-chip { min-height: 28px; padding: 0 10px; font-size: 0.85rem; }
+.option .badges { flex: none; flex-direction: column; margin: 0; }
+.option .badges .badge-chip { padding: 0 4px; background: transparent; font-size: 0.9rem; }

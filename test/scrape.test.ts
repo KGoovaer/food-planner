@@ -92,3 +92,11 @@ test("book references in English (Jamie Oliver)", async () => {
   assert.equal(bookReference("Find the recipe!For the full recipe, head to page 126 of Save with Jamie."), "Full recipe: p. 126 of “Save with Jamie”");
   assert.equal(bookReference("Fry the onions."), null);
 });
+
+test("cooking time from visible labels", async () => {
+  const { timeFromText } = await import("../src/scrape.ts");
+  assert.equal(timeFromText("<div>Summer</div><div>Easy</div><span>Prep</span> <span>15 min</span> <span>Cook</span> <span>55 min</span>"), 70);
+  assert.equal(timeFromText("<p>Prep 20 mins Cook 1 hr 10 min</p>"), 90);
+  assert.equal(timeFromText("<p>Cook 2 hours</p>"), 120);
+  assert.equal(timeFromText("<p>Leave to sit for 30 minutes</p>"), null);
+});

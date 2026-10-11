@@ -282,10 +282,27 @@ export function instructionBlocks(html: string): string[] {
   return steps;
 }
 
+const DURATION = String.raw`(\d+)\s*(?:hrs?|hours?|u|uur)(?:\s*(?:and\s*)?(\d+)\s*(?:mins?|minutes|minuten))?|(\d+)\s*(?:mins?|minutes|minuten)`;
+
+function minutesOf(m: RegExpMatchArray | null): number {
+  if (!m) return 0;
+  return m[1] ? Number(m[1]) * 60 + Number(m[2] ?? 0) : Number(m[3] ?? 0);
+}
+
+/** Visible "Prep 15 min Cook 1 hr 10 min" labels (Ottolenghi has no times in its structured data). */
+export function timeFromText(html: string): number | null {
+  const text = htmlToText(html.replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")).replace(/\s+/g, " ");
+  const prep = text.match(new RegExp(String.raw`\b(?:prep(?:aration)?(?: time)?|voorbereiding)\s*:?\s*(?:${DURATION})`, "i"));
+  const cook = text.match(new RegExp(String.raw`\b(?:cook(?:ing)?(?: time)?|bereidingstijd|kooktijd)\s*:?\s*(?:${DURATION})`, "i"));
+  const total = minutesOf(prep) + minutesOf(cook);
+  return total > 0 ? total : null;
+}
+
 /** Best-effort structured extraction; null when the page has no machine readable recipe. */
 export function extractRecipe(html: string, url: string | null): RecipeDraft | null {
   const recipe = extractStructured(html, url);
   if (recipe) {
+    recipe.totalMinutes ??= timeFromText(html);
     const blocks = instructionBlocks(html);
     if (blocks.length > recipe.steps.length) recipe.steps = blocks;
   }

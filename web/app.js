@@ -42,6 +42,7 @@ const ICONS = {
   settings: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   note: '<svg viewBox="0 0 24 24"><path d="M6 3.5h9l3.5 3.5v13.5H6z"/><path d="M14.5 3.5V7.5h4M9 12h6M9 15.5h4"/></svg>',
   move: '<svg viewBox="0 0 24 24"><path d="M4 12h16M14 6l6 6-6 6"/></svg>',
+  filter: '<svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',
   external: '<svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
 };
 
@@ -451,34 +452,134 @@ function bindWeekNav(navigate, from) {
   };
 }
 
+// ---------- recipe filters (shared by the recipe list and the meal picker) ----------
+
+const PROTEINS = [
+  ["vegetarian", "🥦", "Vegetarian"],
+  ["poultry", "🐔", "Poultry"],
+  ["beef", "🐄", "Beef & red meat"],
+  ["pork", "🐖", "Pork"],
+  ["lamb", "🐑", "Lamb"],
+  ["fish", "🐟", "Fish"],
+  ["seafood", "🦐", "Seafood"],
+];
+const PROTEIN_INFO = Object.fromEntries(PROTEINS.map(([k, icon, label]) => [k, { icon, label }]));
+const TIMES = [20, 30, 45, 60];
+const CHEF_TAGS = ["jeroen meus", "pascale naessens", "jamie oliver", "ottolenghi", "hellofresh"];
+
+const emptyFilter = (course = "all") => ({ q: "", course, proteins: [], maxTime: 0, healthy: false, easy: false, favorite: false, tags: [], sort: "az" });
+
+function loadFilter() {
+  try {
+    return { ...emptyFilter(), ...JSON.parse(localStorage.getItem("recipeFilter") || "{}"), q: "" };
+  } catch {
+    return emptyFilter();
+  }
+}
+let recipeFilter = loadFilter();
+function saveFilter() {
+  try {
+    localStorage.setItem("recipeFilter", JSON.stringify({ ...recipeFilter, q: "" }));
+  } catch {
+    /* private mode */
+  }
+}
+
+function matchesFilter(r, f) {
+  if (f.course !== "all" && r.course !== f.course) return false;
+  if (f.proteins.length && !f.proteins.some((p) => r.proteins.includes(p))) return false;
+  if (f.maxTime && !(r.totalMinutes && r.totalMinutes <= f.maxTime)) return false;
+  if (f.healthy && !r.healthy) return false;
+  if (f.easy && !r.easy) return false;
+  if (f.favorite && !r.favorite) return false;
+  if (f.tags.length && !f.tags.some((t) => r.tags.includes(t))) return false;
+  const q = f.q.trim().toLowerCase();
+  return !q || r.title.toLowerCase().includes(q) || r.ingredientNames.toLowerCase().includes(q) || r.tags.some((t) => t.includes(q));
+}
+
+function sortRecipes(list, sort) {
+  const byTitle = (a, b) => a.title.localeCompare(b.title, "nl");
+  if (sort === "time") return [...list].sort((a, b) => (a.totalMinutes ?? 9999) - (b.totalMinutes ?? 9999) || byTitle(a, b));
+  if (sort === "forgotten") {
+    // Never cooked first, then longest ago.
+    const key = (r) => (r.planned?.next ? "9" : r.planned?.last ?? "0");
+    return [...list].sort((a, b) => key(a).localeCompare(key(b)) || byTitle(a, b));
+  }
+  return [...list].sort((a, b) => Number(b.favorite) - Number(a.favorite) || byTitle(a, b));
+}
+
+/** Number of active filters, not counting the search text. */
+const activeCount = (f) =>
+  (f.course !== "all" ? 1 : 0) + f.proteins.length + (f.maxTime ? 1 : 0) + (f.healthy ? 1 : 0) + (f.easy ? 1 : 0) + (f.favorite ? 1 : 0) + f.tags.length;
+
+/** Quick toggle chips; `data-action="quick"` with a data-key the handler understands. */
+function quickChips(f, { withFilterButton = false } = {}) {
+  const chip = (key, label, on) => `<button class="chip ${on ? "active" : ""}" data-action="quick" data-key="${key}">${label}</button>`;
+  const n = activeCount(f);
+  return [
+    withFilterButton ? `<button class="chip ${n ? "active" : ""}" data-action="filters">${ICONS.filter} Filters${n ? ` · ${n}` : ""}</button>` : "",
+    chip("course:main", "Mains", f.course === "main"),
+    chip("course:dessert", "🍰 Desserts", f.course === "dessert"),
+    chip("time:30", "⏱ ≤ 30 min", f.maxTime === 30),
+    chip("healthy", "🥗 Healthy", f.healthy),
+    chip("easy", "⚡ Easy", f.easy),
+    ...PROTEINS.map(([k, icon, label]) => chip(`protein:${k}`, `${icon} ${label}`, f.proteins.includes(k))),
+    withFilterButton ? chip("favorite", "★ Favorites", f.favorite) : "",
+  ].join("");
+}
+
+function toggleQuick(f, key) {
+  const [kind, value] = key.split(":");
+  if (kind === "course") f.course = f.course === value ? "all" : value;
+  else if (kind === "time") f.maxTime = f.maxTime === Number(value) ? 0 : Number(value);
+  else if (kind === "protein") f.proteins = f.proteins.includes(value) ? f.proteins.filter((p) => p !== value) : [...f.proteins, value];
+  else if (kind === "tag") f.tags = f.tags.includes(value) ? f.tags.filter((t) => t !== value) : [...f.tags, value];
+  else if (kind === "healthy" || kind === "easy" || kind === "favorite") f[kind] = !f[kind];
+}
+
+function badges(r, { long = false } = {}) {
+  const out = r.proteins.map((p) => `<span class="badge-chip">${PROTEIN_INFO[p].icon}${long ? ` ${PROTEIN_INFO[p].label}` : ""}</span>`);
+  if (r.healthy) out.push(`<span class="badge-chip">🥗${long ? " Healthy" : ""}</span>`);
+  if (r.easy) out.push(`<span class="badge-chip">⚡${long ? " Easy" : ""}</span>`);
+  if (r.course === "dessert") out.push(`<span class="badge-chip">🍰${long ? " Dessert" : ""}</span>`);
+  return out.join("");
+}
+
 async function openMealPicker(date) {
-  openSheet(`<h3>${fmt(date, { weekday: "long", day: "numeric", month: "long" })}</h3><div class="spinner"></div>`);
+  const title = fmt(date, { weekday: "long", day: "numeric", month: "long" });
+  openSheet(`<h3>${title}</h3><div class="spinner"></div>`);
   const gen = state.sheetGen;
   const [recipes, settings] = await Promise.all([loadRecipes(), api("GET", "/api/settings")]);
   if (gen !== state.sheetGen) return; // dismissed while loading
-  const renderOptions = (q) => {
-    const needle = q.trim().toLowerCase();
-    const list = recipes.filter(
-      (r) => !needle || r.title.toLowerCase().includes(needle) || r.tags.some((t) => t.includes(needle)) || r.ingredientNames.toLowerCase().includes(needle),
-    );
+  // The picker starts from "mains" but keeps the user's other filters (protein, time, …).
+  const f = { ...recipeFilter, q: "", course: "main", tags: [], favorite: false };
+  const LIMIT = 80;
+  const renderOptions = () => {
+    const list = sortRecipes(recipes.filter((r) => matchesFilter(r, f)), f.sort === "az" ? "forgotten" : f.sort);
     if (!list.length) return `<p class="muted center">No recipes match.</p>`;
-    return list
-      .map(
-        (r) => `<button class="option" data-action="pick" data-id="${r.id}">
+    return (
+      list
+        .slice(0, LIMIT)
+        .map(
+          (r) => `<button class="option" data-action="pick" data-id="${r.id}">
         ${thumb(r.image)}
         <span class="text"><strong>${esc(r.title)}</strong>
           <small>${[r.totalMinutes ? `${r.totalMinutes} min` : "", historyLabel(r.planned) || "never cooked", r.favorite ? "★" : ""].filter(Boolean).join(" · ")}</small>
-        </span></button>`,
-      )
-      .join("");
+        </span><span class="badges">${badges(r)}</span></button>`,
+        )
+        .join("") + (list.length > LIMIT ? `<p class="muted center small">${list.length - LIMIT} more – narrow it down with search or filters</p>` : "")
+    );
+  };
+  const refresh = () => {
+    $("#picker-chips").innerHTML = quickChips(f);
+    $("#picker-list").innerHTML = renderOptions();
   };
   openSheet(
-    `<h3>${fmt(date, { weekday: "long", day: "numeric", month: "long" })}</h3>
-    <div class="row" style="margin-bottom:10px">
-      <input class="input" id="picker-search" type="search" placeholder="Search recipes or ingredients" autocomplete="off">
-    </div>
+    `<h3>${title}</h3>
+    <input class="input" id="picker-search" type="search" placeholder="Search recipes or ingredients" autocomplete="off">
+    <div class="chips" id="picker-chips" style="margin-top:8px">${quickChips(f)}</div>
     <div class="sheet-body">
-      <div class="option-list" id="picker-list">${renderOptions("")}</div>
+      <div class="option-list" id="picker-list">${renderOptions()}</div>
       <h2 class="section">Or add a note</h2>
       <form class="add-item" id="note-form">
         <input class="input" name="note" placeholder="Leftovers, eating out, …" autocomplete="off">
@@ -492,9 +593,16 @@ async function openMealPicker(date) {
         closeSheet();
         render({ keepScroll: true });
       },
+      quick: (el) => {
+        toggleQuick(f, el.dataset.key);
+        refresh();
+      },
     },
   );
-  $("#picker-search").addEventListener("input", (e) => ($("#picker-list").innerHTML = renderOptions(e.target.value)));
+  $("#picker-search").addEventListener("input", (e) => {
+    f.q = e.target.value;
+    $("#picker-list").innerHTML = renderOptions();
+  });
   $("#note-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const note = e.target.note.value.trim();
@@ -511,63 +619,130 @@ async function openMealPicker(date) {
 
 // ---------- recipes ----------
 
-let recipeFilter = { q: "", tag: "" };
-
 async function viewRecipes({ isCurrent }) {
   setChrome({ title: "Recipes", tab: "recipes" });
   const recipes = await loadRecipes(true);
   if (!isCurrent()) return;
-
-  const tagCounts = new Map();
-  for (const r of recipes) for (const t of r.tags) tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
-  const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([t]) => t);
+  const PAGE = 60;
+  let shownCount = PAGE;
 
   view.innerHTML = recipes.length
-    ? `<div class="search"><input class="input" id="recipe-search" type="search" placeholder="Search ${recipes.length} recipes" value="${esc(recipeFilter.q)}" autocomplete="off"></div>
-       <div class="chips" id="tag-chips">
-         <button class="chip ${recipeFilter.tag === "★" ? "active" : ""}" data-action="tag" data-tag="★">★ Favorites</button>
-         ${tags.map((t) => `<button class="chip ${recipeFilter.tag === t ? "active" : ""}" data-action="tag" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}
-       </div>
+    ? `<div class="search"><input class="input" id="recipe-search" type="search" placeholder="Search ${recipes.length} recipes or ingredients" value="${esc(recipeFilter.q)}" autocomplete="off"></div>
+       <div class="chips" id="quick-chips"></div>
+       <div class="result-line"><span id="result-count" class="muted small"></span><button class="btn ghost small" data-action="reset" id="reset-btn">Clear filters</button></div>
        <div class="recipe-list" id="recipe-list"></div>`
     : `<div class="empty">${ICONS.dish}<h3>No recipes yet</h3>
          <p>Import a HelloFresh recipe, snap a cookbook page or type one in.</p>
          <a class="btn" href="#/import">${ICONS.plus} Add a recipe</a></div>`;
   view.insertAdjacentHTML("beforeend", `<button class="fab" data-action="new" aria-label="Add recipe">${ICONS.plus}</button>`);
+  if (!recipes.length) {
+    state.actions.new = () => openImportChooser();
+    return;
+  }
 
   const renderList = () => {
-    const list = $("#recipe-list");
-    if (!list) return;
-    const q = recipeFilter.q.trim().toLowerCase();
-    const shown = recipes.filter((r) => {
-      if (recipeFilter.tag === "★" && !r.favorite) return false;
-      if (recipeFilter.tag && recipeFilter.tag !== "★" && !r.tags.includes(recipeFilter.tag)) return false;
-      return !q || r.title.toLowerCase().includes(q) || r.ingredientNames.toLowerCase().includes(q) || r.tags.some((t) => t.includes(q));
-    });
-    list.innerHTML = shown.length
+    const shown = sortRecipes(recipes.filter((r) => matchesFilter(r, recipeFilter)), recipeFilter.sort);
+    $("#quick-chips").innerHTML = quickChips(recipeFilter, { withFilterButton: true });
+    $("#result-count").textContent = `${shown.length} recipe${shown.length === 1 ? "" : "s"}`;
+    $("#reset-btn").hidden = !activeCount(recipeFilter) && !recipeFilter.q;
+    $("#recipe-list").innerHTML = shown.length
       ? shown
+          .slice(0, shownCount)
           .map(
             (r) => `<a class="card recipe-item" href="#/recipe/${r.id}">
           ${thumb(r.image)}
           <div class="info">
             <div class="title">${r.favorite ? `<span class="fav">${ICONS.star}</span> ` : ""}${esc(r.title)}</div>
             <div class="meta">${[r.totalMinutes ? `${r.totalMinutes} min` : "", `${r.servings} servings`, historyLabel(r.planned)].filter(Boolean).join(" · ")}</div>
+            <div class="badges">${badges(r)}</div>
           </div></a>`,
           )
-          .join("")
-      : `<p class="muted center">Nothing found.</p>`;
+          .join("") +
+        (shown.length > shownCount ? `<button class="btn secondary block" data-action="more">Show more (${shown.length - shownCount})</button>` : "")
+      : `<p class="muted center">Nothing found. ${activeCount(recipeFilter) ? "Try clearing some filters." : ""}</p>`;
+    saveFilter();
   };
   renderList();
 
-  $("#recipe-search")?.addEventListener("input", (e) => {
+  $("#recipe-search").addEventListener("input", (e) => {
     recipeFilter.q = e.target.value;
+    shownCount = PAGE;
     renderList();
   });
-  state.actions.tag = (el) => {
-    recipeFilter.tag = recipeFilter.tag === el.dataset.tag ? "" : el.dataset.tag;
-    for (const c of document.querySelectorAll("#tag-chips .chip")) c.classList.toggle("active", c.dataset.tag === recipeFilter.tag);
+  state.actions.quick = (el) => {
+    toggleQuick(recipeFilter, el.dataset.key);
+    shownCount = PAGE;
     renderList();
   };
+  state.actions.more = () => {
+    shownCount += PAGE;
+    renderList();
+  };
+  state.actions.reset = () => {
+    recipeFilter = emptyFilter();
+    $("#recipe-search").value = "";
+    shownCount = PAGE;
+    renderList();
+  };
+  state.actions.filters = () => openFilterSheet(recipes, () => {
+    shownCount = PAGE;
+    renderList();
+  });
   state.actions.new = () => openImportChooser();
+}
+
+/** Full filter sheet: course, protein, time, healthy/easy, chef/source and sorting. */
+function openFilterSheet(recipes, onChange) {
+  const tagCounts = new Map();
+  for (const r of recipes) for (const t of r.tags) tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
+  const chefs = CHEF_TAGS.filter((t) => tagCounts.has(t));
+  const otherTags = [...tagCounts.entries()].filter(([t]) => !CHEF_TAGS.includes(t)).sort((a, b) => b[1] - a[1]).slice(0, 16).map(([t]) => t);
+  const f = recipeFilter;
+  const chip = (key, label, on) => `<button class="chip ${on ? "active" : ""}" data-action="quick" data-key="${esc(key)}">${label}</button>`;
+  const body = () => {
+    const count = recipes.filter((r) => matchesFilter(r, f)).length;
+    return `<h3>Filters</h3>
+    <div class="sheet-body filter-sheet">
+      <h2 class="section">Course</h2>
+      <div class="chip-wrap">${chip("course:main", "Mains", f.course === "main")}${chip("course:dessert", "🍰 Desserts", f.course === "dessert")}</div>
+      <h2 class="section">Protein</h2>
+      <div class="chip-wrap">${PROTEINS.map(([k, icon, label]) => chip(`protein:${k}`, `${icon} ${label}`, f.proteins.includes(k))).join("")}</div>
+      <h2 class="section">Ready in</h2>
+      <div class="chip-wrap">${TIMES.map((t) => chip(`time:${t}`, `≤ ${t} min`, f.maxTime === t)).join("")}</div>
+      <h2 class="section">Type</h2>
+      <div class="chip-wrap">${chip("healthy", "🥗 Healthy", f.healthy)}${chip("easy", "⚡ Easy (few ingredients)", f.easy)}${chip("favorite", "★ Favorites", f.favorite)}</div>
+      ${chefs.length ? `<h2 class="section">Chef</h2><div class="chip-wrap">${chefs.map((t) => chip(`tag:${t}`, esc(t), f.tags.includes(t))).join("")}</div>` : ""}
+      ${otherTags.length ? `<h2 class="section">Tags</h2><div class="chip-wrap">${otherTags.map((t) => chip(`tag:${t}`, esc(t), f.tags.includes(t))).join("")}</div>` : ""}
+      <h2 class="section">Sort</h2>
+      <div class="segmented">${[["az", "A–Z"], ["time", "Quickest"], ["forgotten", "Not cooked lately"]]
+        .map(([k, l]) => `<button data-action="sort" data-sort="${k}" class="${f.sort === k ? "active" : ""}">${l}</button>`)
+        .join("")}</div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn secondary" data-action="clear">Clear</button>
+      <button class="btn" style="flex:1" data-action="close-sheet">Show ${count} recipe${count === 1 ? "" : "s"}</button>
+    </div>`;
+  };
+  const rerender = () => {
+    const scroll = $("#sheet .sheet-body")?.scrollTop ?? 0;
+    $("#sheet").innerHTML = body();
+    $("#sheet .sheet-body").scrollTop = scroll;
+    onChange();
+  };
+  openSheet(body(), {
+    quick: (el) => {
+      toggleQuick(f, el.dataset.key);
+      rerender();
+    },
+    sort: (el) => {
+      f.sort = el.dataset.sort;
+      rerender();
+    },
+    clear: () => {
+      Object.assign(f, emptyFilter(), { q: f.q });
+      rerender();
+    },
+  });
 }
 
 function openImportChooser() {
@@ -650,6 +825,7 @@ async function viewRecipe({ params, query, isCurrent }) {
       ${source ? `<span>${ICONS.link}${source}</span>` : ""}
       ${historyLabel(recipe.planned) ? `<span>${ICONS.calendar}${recipe.planned.count ? `${recipe.planned.count}× · ` : ""}${historyLabel(recipe.planned)}</span>` : ""}
     </div>
+    <div class="badges long">${badges(recipe, { long: true })}</div>
     ${recipe.tags.length ? `<div class="chips" style="margin-top:10px">${recipe.tags.map((t) => `<span class="chip">${esc(t)}</span>`).join("")}</div>` : ""}
     ${recipe.description ? `<p class="description">${esc(recipe.description)}</p>` : ""}
 

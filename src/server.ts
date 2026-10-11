@@ -10,6 +10,7 @@ import { absoluteUrl, extractRecipe, fetchPage, pageText, readLimited, type Reci
 import { AiError, aiEnabled, recipeFromImages, recipeFromText, recipeFromUrl, type ImageInput } from "./ai.ts";
 import { BringError, bring, bringEnabled } from "./bring.ts";
 import { addDays, isDate, shoppingForWeek, today, weekStart } from "./planner.ts";
+import { classify } from "./classify.ts";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const DATA_DIR = process.env.DATA_DIR ?? "/data";
@@ -213,6 +214,7 @@ route("GET", "/api/recipes", async (_req, res) => {
     200,
     store.listRecipes().map(({ ingredients, steps, ...r }) => ({
       ...r,
+      ...classify({ ...r, ingredients, steps }),
       ingredientCount: ingredients.length,
       ingredientNames: ingredients.map((i) => i.name).join(", "),
       planned: history.get(r.id) ?? null,
@@ -223,7 +225,7 @@ route("GET", "/api/recipes", async (_req, res) => {
 route("GET", "/api/recipes/:id", async (_req, res, [rid]) => {
   const recipe = store.getRecipe(id(rid));
   if (!recipe) throw new HttpError(404, "Recipe not found");
-  send(res, 200, { ...withText(recipe), planned: store.recipeHistory(today()).get(recipe.id) ?? null });
+  send(res, 200, { ...withText(recipe), ...classify(recipe), planned: store.recipeHistory(today()).get(recipe.id) ?? null });
 });
 
 route("POST", "/api/recipes", async (req, res) => {
