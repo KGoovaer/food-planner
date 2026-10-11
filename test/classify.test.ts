@@ -40,6 +40,12 @@ test("real-world cases: compounds ending in the meat, sausages, buns, alternativ
   assert.deepEqual(classify(recipe({ ingredients: ing("salsiccia's", "orzo") })).proteins, ["pork"]);
   assert.deepEqual(classify(recipe({ title: "Lasagne met ham en champignons", ingredients: ing("lasagnevellen", "champignons") })).proteins, ["pork"]);
   assert.deepEqual(classify(recipe({ title: "Bietburger met feta", ingredients: ing("bietburger", "feta") })).proteins, ["vegetarian"]);
+  assert.equal(classify(recipe({ title: "Broccolisoep met halloumi en crumble van walnoten" })).course, "main");
+  assert.equal(classify(recipe({ title: "Gebakken wittekool met een crumble van noten" })).course, "main");
+  assert.equal(classify(recipe({ title: "Zalige appelcake" })).course, "dessert");
+  assert.equal(classify(recipe({ title: "Koffie-ijs" })).course, "dessert");
+  assert.equal(classify(recipe({ title: "Krokante champignontaart met amandel" })).course, "main");
+  assert.equal(classify(recipe({ title: "Taartje met noten", tags: ["gebak"] })).course, "dessert");
   assert.equal(classify(recipe({ title: "Daisy's macaroni cheese" })).course, "main");
   assert.equal(classify(recipe({ title: "Cheesy curry crepes" })).course, "main");
   assert.equal(classify(recipe({ title: "Macarons met framboos" })).course, "dessert");

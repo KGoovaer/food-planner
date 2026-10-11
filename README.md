@@ -9,6 +9,7 @@ Plan the week's meals from your phone, import recipes in seconds and turn the pl
   - Always lands in an editor first so you can check it before saving.
 - **Week planner**: Monday–Sunday, per-meal servings (ingredients scale), notes like "eating out", move meals between days.
 - **Shopping list**: ingredients of the week merged and summed (`600 g` + `0.5 kg` → `1.1 kg`), pantry basics (oil, salt, …) kept aside with a "Need" button, extra items, tick off while shopping, share as text or **send to Bring!**.
+- **Find something to cook**: filter on protein (poultry, beef & red meat, pork, lamb, fish, seafood, vegetarian), *healthy*, *easy* (few ingredients, short method), cooking time, mains vs desserts, classics, chef and tags; sort A–Z, quickest first or "not cooked lately". The same quick filters are in the meal picker. These facts are derived from each recipe's ingredients, tags and title (`src/classify.ts`), so they also apply to recipes you add later – add the tag `dessert` or `healthy` to correct a recipe.
 - **Cooking**: servings scaler, tap-to-tick ingredients and steps, *cook mode* keeps the screen on.
 - Mobile-first PWA (installable, works with patchy reception in the shop), light/dark mode.
 

@@ -100,3 +100,9 @@ test("cooking time from visible labels", async () => {
   assert.equal(timeFromText("<p>Cook 2 hours</p>"), 120);
   assert.equal(timeFromText("<p>Leave to sit for 30 minutes</p>"), null);
 });
+
+test("Pure Pascale category links become tags", async () => {
+  const { categoryLinks } = await import("../src/scrape.ts");
+  const html = '<a href="https://purepascale.com/recepten?c=appelcake">appelcake</a><a href="https://purepascale.com/recepten?c=dessert">dessert</a><a href="/blog?c=116">blog</a>';
+  assert.deepEqual(categoryLinks(html), ["appelcake", "dessert"]);
+});

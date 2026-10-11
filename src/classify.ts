@@ -84,11 +84,14 @@ const DESSERT_TAG = /^(dessert|desserts|nagerecht|nagerechten|zoet|sweet|gebak|b
 const DESSERT_TITLE = matcher(
   ["tiramisu", "mousse au chocolat", "chocolademousse", "panna cotta", "pannacotta", "crumble", "sorbet", "brownie", "cheesecake", "clafoutis", "creme brulee", "tarte tatin", "pudding", "roomijs", "ijsje", "cupcake", "muffin", "cookie", "koekje", "fudge", "meringue", "pavlova", "eclair", "profiterole", "chocoladetaart", "appeltaart", "rijsttaart", "frangipane", "sabayon", "tartelette", "trifle", "baklava", "churros", "flan"],
   ["cake", "ijs", "dessert", "macaron", "macarons", "zoete pannenkoeken", "suikerwafels"],
+  ["appelcake", "notencake", "bananencake", "citroencake", "chocoladecake", "worteltaart", "kwarktaart", "appeltaart", "rijsttaart", "fruittaart", "fruittaartje", "rijstpap", "-ijs", "mousse"],
 );
 
 export function courseOf(title: string, tags: string[]): Course {
   if (tags.some((t) => DESSERT_TAG.test(normalize(t)))) return "dessert";
-  return DESSERT_TITLE.test(normalize(title)) ? "dessert" : "main";
+  // Only the dish itself counts, not its garnish: "Broccolisoep met ... crumble van walnoten" is soup.
+  const head = normalize(title).split(/ (?:met|with|en|and|op|on|in|van|of|served) |, /)[0];
+  return DESSERT_TITLE.test(head) ? "dessert" : "main";
 }
 
 const VEG = matcher([

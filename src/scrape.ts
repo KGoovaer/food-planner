@@ -298,10 +298,18 @@ export function timeFromText(html: string): number | null {
   return total > 0 ? total : null;
 }
 
+/** Pure Pascale links each recipe to its categories (`/recepten?c=dessert`); use them as tags. */
+export function categoryLinks(html: string): string[] {
+  const tags = new Set<string>();
+  for (const m of html.matchAll(/\/recepten\?c=([a-z][a-z0-9-]*)"/g)) tags.add(decodeEntities(m[1]).replace(/-/g, " "));
+  return [...tags].slice(0, 10);
+}
+
 /** Best-effort structured extraction; null when the page has no machine readable recipe. */
 export function extractRecipe(html: string, url: string | null): RecipeDraft | null {
   const recipe = extractStructured(html, url);
   if (recipe) {
+    for (const t of categoryLinks(html)) if (!recipe.tags.includes(t)) recipe.tags.push(t);
     recipe.totalMinutes ??= timeFromText(html);
     const blocks = instructionBlocks(html);
     if (blocks.length > recipe.steps.length) recipe.steps = blocks;
