@@ -13,6 +13,7 @@ export interface RecipeDraft {
   ingredients: Ingredient[];
   steps: string[];
   tags: string[];
+  notes?: string;
 }
 
 const BROWSER_HEADERS = {
@@ -134,7 +135,7 @@ function tagList(...values: unknown[]): string[] {
   const tags = new Set<string>();
   for (const v of values) {
     const list = Array.isArray(v) ? v : typeof v === "string" ? v.split(",") : [];
-    for (const t of list) if (typeof t === "string" && t.trim()) tags.add(t.trim().toLowerCase());
+    for (const t of list) if (typeof t === "string" && t.trim()) tags.add(decodeEntities(t).trim().toLowerCase());
   }
   return [...tags].slice(0, 8);
 }
@@ -254,8 +255,23 @@ export function recipeFromHelloFresh(html: string, url: string | null, preferred
   };
 }
 
+/** Some sites (Pure Pascale) only publish ingredients and point to the cookbook page for the method. */
+export function bookReference(html: string): string | null {
+  const m = htmlToText(html).match(/Het volledige recept lees je op pagina\s+(\d+)\s+van\s+([^\n]+)/);
+  return m ? `Volledig recept: p. ${m[1]} van “${m[2].trim()}”` : null;
+}
+
 /** Best-effort structured extraction; null when the page has no machine readable recipe. */
 export function extractRecipe(html: string, url: string | null): RecipeDraft | null {
+  const recipe = extractStructured(html, url);
+  if (recipe && recipe.steps.length === 0) {
+    const ref = bookReference(html);
+    if (ref) recipe.notes = ref;
+  }
+  return recipe;
+}
+
+function extractStructured(html: string, url: string | null): RecipeDraft | null {
   const hf = recipeFromHelloFresh(html, url);
   const ld = recipeFromJsonLd(html, url);
   if (hf && ld) {

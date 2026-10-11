@@ -50,6 +50,8 @@ test("tricky lines from real recipes", () => {
   assert.deepEqual(parseIngredient("5-kruidenpoeder"), { quantity: null, unit: "", name: "5-kruidenpoeder" });
   assert.deepEqual(parseIngredient("1 (400 g) can tomatoes"), { quantity: 1, unit: "can", name: "tomatoes", note: "400 g" });
   assert.deepEqual(parseIngredient("0 g suiker"), { quantity: null, unit: "", name: "g suiker" });
+  assert.deepEqual(parseIngredient("450 g skinless, boneless free-range chicken thighs"), { quantity: 450, unit: "g", name: "skinless, boneless free-range chicken thighs" });
+  assert.deepEqual(parseIngredient("2 handenvol cashewnoten, geroosterd"), { quantity: 2, unit: "handful", name: "cashewnoten", note: "geroosterd" });
 });
 
 test("editor text keeps exact quantities", () => {

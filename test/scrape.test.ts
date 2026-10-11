@@ -68,3 +68,12 @@ test("relative image urls are made absolute", async () => {
   assert.equal(absoluteUrl("//cdn.site.be/x.jpg?a=1&amp;b=2", "https://site.be/"), "https://cdn.site.be/x.jpg?a=1&b=2");
   assert.equal(absoluteUrl("javascript:alert(1)", "https://site.be/"), null);
 });
+
+test("Pure Pascale: ingredients from JSON-LD and the cookbook page as note", () => {
+  const html = readFileSync(new URL("./fixtures/purepascale.html", import.meta.url), "utf8");
+  const r = extractRecipe(html, "https://purepascale.com/recepten/x")!;
+  assert.equal(r.servings, 4);
+  assert.equal(r.ingredients.length, 12);
+  assert.equal(r.steps.length, 0);
+  assert.equal(r.notes, "Volledig recept: p. 204 van “De slimste keuken”");
+});

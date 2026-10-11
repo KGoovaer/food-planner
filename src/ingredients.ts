@@ -31,7 +31,7 @@ const UNIT_ALIASES: Record<string, string[]> = {
   pinch: ["snuf", "snufje", "snufjes", "mespunt", "mespuntje", "pinch", "pinches"],
   bunch: ["bos", "bosje", "bosjes", "bunch", "bunches"],
   sprig: ["takje", "takjes", "tak", "takken", "sprig", "sprigs"],
-  handful: ["handje", "handjes", "handvol", "handful", "handfuls"],
+  handful: ["handje", "handjes", "handvol", "handenvol", "handvollen", "handful", "handfuls"],
   jar: ["pot", "potje", "potjes", "jar", "jars"],
   piece: ["stuk", "stuks", "stukken", "st", "piece", "pieces", "pc", "pcs"],
   stalk: ["stengel", "stengels", "stengeltje", "stengeltjes", "stalk", "stalks"],
@@ -98,6 +98,13 @@ function parseNumber(text: string): number {
 
 const TO_TASTE_RE = /^(naar smaak|to taste|optioneel|optional|snufje|a pinch of)\s+/i;
 
+const ADJECTIVES = new Set([
+  "skinless", "boneless", "free-range", "fresh", "large", "small", "medium", "ripe", "raw", "cooked", "dried",
+  "organic", "unsalted", "salted", "frozen", "whole", "thick", "thin", "lean", "extra", "virgin", "lightly",
+  "verse", "vers", "grote", "kleine", "rijpe", "gedroogde", "biologische", "ongezouten",
+]);
+const isAdjective = (w: string) => ADJECTIVES.has(w) || w.endsWith("less") || w.includes("-");
+
 /** Split "Honing [of plantaardig alternatief]" / "ui, fijngesneden" into name and note. */
 function splitNote(text: string): { name: string; note?: string } {
   let name = text.trim();
@@ -107,7 +114,11 @@ function splitNote(text: string): { name: string; note?: string } {
     name = trailing[1];
     note = trailing[2].trim();
   }
-  const comma = name.indexOf(",");
+  // Split at the first comma that follows an actual noun: "skinless, boneless chicken thighs" stays whole.
+  let comma = name.indexOf(",");
+  while (comma > 0 && name.slice(0, comma).toLowerCase().trim().split(/\s+/).every(isAdjective)) {
+    comma = name.indexOf(",", comma + 1);
+  }
   if (comma > 0) {
     const rest = name.slice(comma + 1).trim();
     name = name.slice(0, comma);
