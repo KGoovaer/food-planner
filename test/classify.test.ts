@@ -95,3 +95,26 @@ test("easy: few ingredients, short method, not too long", () => {
   assert.equal(classify(recipe({ ingredients: ing("a", "b"), totalMinutes: 180 })).easy, false);
   assert.equal(classify(recipe({ ingredients: ing("a", "b"), steps: Array(12).fill("s") })).easy, false);
 });
+
+test("child-friendly", () => {
+  const kids = (over: Partial<Parameters<typeof classify>[0]>) => classify(recipe(over)).childFriendly;
+  assert.equal(kids({ title: "Spaghetti bolognaise", ingredients: ing("spaghetti", "gehakt", "tomaten", "ui", "wortel", "selder") }), true);
+  assert.equal(kids({ title: "Balletjes in tomatensaus", ingredients: ing(...Array.from({ length: 20 }, (_, i) => `x${i}`)) }), true); // favourite, despite many ingredients
+  assert.equal(kids({ title: "Pittige kip", ingredients: ing("kip", "rijst") }), false);
+  assert.equal(kids({ title: "Chili con carne", ingredients: ing("gehakt", "bonen", "chilipeper") }), false);
+  assert.equal(kids({ title: "Steak tartaar", ingredients: ing("rundvlees", "kappertjes") }), false);
+  assert.equal(kids({ title: "Gebakken kalfslever", ingredients: ing("kalfslever", "ui") }), false);
+  assert.equal(kids({ title: "Pasta met gorgonzola", ingredients: ing("pasta", "gorgonzola") }), false);
+  assert.equal(kids({ title: "Flambé met whisky", ingredients: ing("biefstuk", "whisky") }), false);
+  assert.equal(kids({ title: "Shawarma", ingredients: ing(...Array.from({ length: 18 }, (_, i) => `x${i}`)) }), false); // long ingredient list, not a favourite
+  assert.equal(kids({ title: "Pulled pork burger", tags: ["kindvriendelijk"], ingredients: ing("varkensschouder", "cayennepeper") }), true); // source says so
+  assert.equal(kids({ title: "Chocolademousse", ingredients: ing("chocolade", "eieren") }), true);
+  assert.equal(kids({ title: "Tiramisu", ingredients: ing("mascarpone", "koffie", "amaretto") }), false); // liqueur
+  const flakes = { quantity: null, unit: "", name: "chilli flakes" };
+  assert.equal(kids({ title: "Carbonara", ingredients: [...ing("spaghetti", "guanciale", "eggs", "pecorino"), flakes] }), true);
+  assert.equal(kids({ title: "Tomato medley", ingredients: [...ing("tomatoes", "basil"), { quantity: 1, unit: "", name: "fresh red chilli" }] }), false);
+  assert.equal(kids({ title: "Prei in kaassaus", ingredients: ing("prei", "kaas", "kappertjes") }), true);
+  assert.equal(kids({ title: "Zoete rode biet met zure haring", ingredients: ing("rode biet", "zure haring") }), false);
+  assert.equal(kids({ title: "Mosselen met witbier", ingredients: ing(...Array.from({ length: 17 }, (_, i) => `x${i}`)) }), true);
+  assert.equal(kids({ title: "Gegrilde Noordzeetong", ingredients: ing("noordzeetong", "boter") }), true);
+});

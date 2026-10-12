@@ -467,7 +467,7 @@ const PROTEIN_INFO = Object.fromEntries(PROTEINS.map(([k, icon, label]) => [k, {
 const TIMES = [20, 30, 45, 60];
 const CHEF_TAGS = ["jeroen meus", "pascale naessens", "jamie oliver", "ottolenghi", "bbq experience center", "hellofresh"];
 
-const emptyFilter = (course = "all") => ({ q: "", course, proteins: [], maxTime: 0, healthy: false, easy: false, favorite: false, tags: [], sort: "az" });
+const emptyFilter = (course = "all") => ({ q: "", course, proteins: [], maxTime: 0, healthy: false, easy: false, kids: false, favorite: false, tags: [], sort: "az" });
 
 function loadFilter() {
   try {
@@ -491,6 +491,7 @@ function matchesFilter(r, f) {
   if (f.maxTime && !(r.totalMinutes && r.totalMinutes <= f.maxTime)) return false;
   if (f.healthy && !r.healthy) return false;
   if (f.easy && !r.easy) return false;
+  if (f.kids && !r.childFriendly) return false;
   if (f.favorite && !r.favorite) return false;
   if (f.tags.length && !f.tags.some((t) => r.tags.includes(t))) return false;
   const q = f.q.trim().toLowerCase();
@@ -510,7 +511,7 @@ function sortRecipes(list, sort) {
 
 /** Number of active filters, not counting the search text. */
 const activeCount = (f) =>
-  (f.course !== "all" ? 1 : 0) + f.proteins.length + (f.maxTime ? 1 : 0) + (f.healthy ? 1 : 0) + (f.easy ? 1 : 0) + (f.favorite ? 1 : 0) + f.tags.length;
+  (f.course !== "all" ? 1 : 0) + f.proteins.length + (f.maxTime ? 1 : 0) + (f.healthy ? 1 : 0) + (f.easy ? 1 : 0) + (f.kids ? 1 : 0) + (f.favorite ? 1 : 0) + f.tags.length;
 
 /** Quick toggle chips; `data-action="quick"` with a data-key the handler understands. */
 function quickChips(f, { withFilterButton = false } = {}) {
@@ -525,6 +526,7 @@ function quickChips(f, { withFilterButton = false } = {}) {
     chip("time:30", "⏱ ≤ 30 min", f.maxTime === 30),
     chip("healthy", "🥗 Healthy", f.healthy),
     chip("easy", "⚡ Easy", f.easy),
+    chip("kids", "🧒 Kids", f.kids),
     ...PROTEINS.map(([k, icon, label]) => chip(`protein:${k}`, `${icon} ${label}`, f.proteins.includes(k))),
     withFilterButton ? chip("favorite", "★ Favorites", f.favorite) : "",
   ].join("");
@@ -536,13 +538,14 @@ function toggleQuick(f, key) {
   else if (kind === "time") f.maxTime = f.maxTime === Number(value) ? 0 : Number(value);
   else if (kind === "protein") f.proteins = f.proteins.includes(value) ? f.proteins.filter((p) => p !== value) : [...f.proteins, value];
   else if (kind === "tag") f.tags = f.tags.includes(value) ? f.tags.filter((t) => t !== value) : [...f.tags, value];
-  else if (kind === "healthy" || kind === "easy" || kind === "favorite") f[kind] = !f[kind];
+  else if (kind === "healthy" || kind === "easy" || kind === "kids" || kind === "favorite") f[kind] = !f[kind];
 }
 
 function badges(r, { long = false } = {}) {
   const out = r.proteins.map((p) => `<span class="badge-chip">${PROTEIN_INFO[p].icon}${long ? ` ${PROTEIN_INFO[p].label}` : ""}</span>`);
   if (r.healthy) out.push(`<span class="badge-chip">🥗${long ? " Healthy" : ""}</span>`);
   if (r.easy) out.push(`<span class="badge-chip">⚡${long ? " Easy" : ""}</span>`);
+  if (r.childFriendly) out.push(`<span class="badge-chip">🧒${long ? " Kids" : ""}</span>`);
   if (r.course === "dessert") out.push(`<span class="badge-chip">🍰${long ? " Dessert" : ""}</span>`);
   if (r.course === "kamado") out.push(`<span class="badge-chip">🔥${long ? " Kamado" : ""}</span>`);
   return out.join("");
@@ -713,7 +716,7 @@ function openFilterSheet(recipes, onChange) {
       <h2 class="section">Ready in</h2>
       <div class="chip-wrap">${TIMES.map((t) => chip(`time:${t}`, `≤ ${t} min`, f.maxTime === t)).join("")}</div>
       <h2 class="section">Type</h2>
-      <div class="chip-wrap">${chip("healthy", "🥗 Healthy", f.healthy)}${chip("easy", "⚡ Easy (few ingredients)", f.easy)}${chip("favorite", "★ Favorites", f.favorite)}</div>
+      <div class="chip-wrap">${chip("healthy", "🥗 Healthy", f.healthy)}${chip("easy", "⚡ Easy (few ingredients)", f.easy)}${chip("kids", "🧒 Child-friendly", f.kids)}${chip("favorite", "★ Favorites", f.favorite)}</div>
       ${chefs.length ? `<h2 class="section">Chef</h2><div class="chip-wrap">${chefs.map((t) => chip(`tag:${t}`, esc(t), f.tags.includes(t))).join("")}</div>` : ""}
       ${otherTags.length ? `<h2 class="section">Tags</h2><div class="chip-wrap">${otherTags.map((t) => chip(`tag:${t}`, esc(t), f.tags.includes(t))).join("")}</div>` : ""}
       <h2 class="section">Sort</h2>

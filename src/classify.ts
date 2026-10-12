@@ -12,6 +12,7 @@ export interface RecipeFacts {
   course: Course;
   healthy: boolean;
   easy: boolean;
+  childFriendly: boolean;
 }
 
 interface Classifiable {
@@ -148,6 +149,46 @@ export function isEasy(r: Classifiable): boolean {
   return true;
 }
 
+const KIDS_TAG = /^(kindvriendelijk|kids|kid friendly|kid-friendly|kinderen|voor kinderen|family|family food|family favourites|gezin)$/;
+const SPICY = matcher(
+  ["chili", "chilli", "chilipeper", "cayenne", "sriracha", "sambal", "harissa", "jalapen", "habanero", "scotch bonnet", "wasabi", "gochujang", "nduja", "'nduja", "piri piri", "piri-piri", "peri peri", "tabasco", "madras", "vindaloo", "chipotle", "rode peper", "groene peper", "chiliflakes", "chilivlokken", "pepervlokken", "pul biber", "urfa", "aleppo", "zhoug", "shatta", "kimchi", "mierikswortel", "horseradish"],
+  ["pittig", "pittige", "spicy", "hot", "fiery", "heet"],
+);
+const RAW = matcher(["tartaar", "tartare", "carpaccio", "ceviche", "sashimi", "oester", "oyster", "rauwe", "raw ", "crudo", "gravad", "poké", "poke bowl", "tataki"]);
+const OFFAL = matcher(["lever", "liver", "niertjes", "kidney", "zwezerik", "sweetbread", "hersenen", "foie gras", "pens", "tripe", "tong van", "kalfstong", "ossentong", "bloedworst", "black pudding", "merg", "marrow", "hart van", "slakken", "escargot", "kikkerbil"], [], ["lever", "levertjes", "niertjes", "zwezeriken"]);
+const SPIRITS = matcher(["whisky", "whiskey", "bourbon", "cognac", "brandy", "rum", "grappa", "calvados", "amaretto", "jenever", "gin", "vodka", "tequila", "pastis", "pernod", "grand marnier", "cointreau", "limoncello", "kirsch", "armagnac", "porto", "port", "madeira", "marsala", "sherry"]);
+const ACQUIRED = matcher(["gorgonzola", "roquefort", "blauwe kaas", "blue cheese", "stilton", "bleu", "ansjovis", "anchov", "haring", "herring", "rolmops"]);
+// Dried chilli, flakes and cayenne "to taste" or a pinch can simply be left out for the kids.
+const SKIPPABLE_HEAT = matcher(["vlokken", "flakes", "cayenne", "chilipoeder", "chili powder", "chilli powder", "pul biber", "urfa", "aleppo", "piment d'espelette", "tabasco", "sriracha", "sambal"]);
+const OPTIONAL = /optional|optioneel|naar smaak|to taste|to serve|om te serveren|extra|garnish|for serving/;
+
+function isSpicy(i: Ingredient): boolean {
+  const name = normalize(i.name);
+  if (!SPICY.test(name)) return false;
+  if (OPTIONAL.test(name) || OPTIONAL.test(normalize(i.note ?? ""))) return false;
+  if (SKIPPABLE_HEAT.test(name)) {
+    const small = i.quantity === null || i.unit === "pinch" || (i.unit === "tsp" && i.quantity <= 1) || (i.unit === "" && i.quantity <= 1);
+    if (small) return false;
+  }
+  return true;
+}
+const FAVOURITE = matcher(
+  ["spaghetti", "macaroni", "lasagne", "pasta", "penne", "fusilli", "pizza", "burger", "balletjes", "meatball", "gehaktbal", "boulet", "frikandel", "kip met appelmoes", "chicken nugget", "nugget", "fish finger", "vissticks", "fishfinger", "wrap", "taco", "quesadilla", "fajita", "pannenkoek", "pancake", "poffertjes", "wentelteefjes", "friet", "puree", "stoemp", "croque", "tosti", "hotdog", "hot dog", "vol-au-vent", "vol au vent", "stoofvlees", "gehaktbrood", "meatloaf", "fish pie", "shepherd", "cottage pie", "hachis", "mac and cheese", "mac n cheese", "mac & cheese", "macaroni cheese", "rijst met", "nasi", "bami", "omelet", "soep met balletjes", "tomatensoep", "kippensoep", "witloof", "hutsepot", "sausage", "worst", "mosselen", "mussels", "fish and chips", "goujons", "schnitzel", "cordon bleu", "kroket", "croquette", "lasagna", "risotto", "gnocchi", "ravioli", "tortellini", "quiche", "frittata", "pannenkoeken"],
+  ["soep", "soup"],
+);
+
+export function isChildFriendly(r: Classifiable, course: Course): boolean {
+  if (r.tags.some((t) => KIDS_TAG.test(normalize(t)))) return true;
+  const title = normalize(r.title);
+  const names = r.ingredients.map((i) => normalize(i.name));
+  const any = (re: RegExp) => re.test(title) || names.some((n) => re.test(n));
+  if (SPICY.test(title) || r.ingredients.some(isSpicy)) return false;
+  if (any(RAW) || any(OFFAL) || any(SPIRITS) || any(ACQUIRED)) return false;
+  if (course === "dessert" || FAVOURITE.test(title)) return true;
+  const real = r.ingredients.filter((i) => !i.pantry && !BASICS.test(normalize(i.name)));
+  return real.length <= 12;
+}
+
 export function classify(r: Classifiable): RecipeFacts {
   let proteins = proteinsOf(r.ingredients);
   // Ingredient lists are sometimes vague; "Lasagne met ham" is not vegetarian whatever the list says.
@@ -156,5 +197,11 @@ export function classify(r: Classifiable): RecipeFacts {
     if (fromTitle[0] !== "vegetarian") proteins = fromTitle;
   }
   const course = courseOf(r.title, r.tags);
-  return { proteins, course, healthy: isHealthy(r, course, proteins), easy: isEasy(r) };
+  return {
+    proteins,
+    course,
+    healthy: isHealthy(r, course, proteins),
+    easy: isEasy(r),
+    childFriendly: isChildFriendly(r, course),
+  };
 }
